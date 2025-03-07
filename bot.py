@@ -236,7 +236,7 @@ async def send_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
-    TOKEN = "7791721807:AAEPHELWDa0238YbYT3O53OcsrFRHYEFUf4"  # আপনার বটের টোকেন
+    TOKEN = "7867830008:AAGqjR-2Bl_tqkxkgsRcPGVCP0aC8Lh4BMc"  # আপনার বটের টোকেন
     app = Application.builder().token(TOKEN).build()
 
     # হ্যান্ডলার রেজিস্টার করুন
