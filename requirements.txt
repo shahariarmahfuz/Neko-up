@@ -1,2 +1,5 @@
+# requirements.txt
 telethon
+python-dotenv
+aiohttp
 requests
