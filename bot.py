@@ -21,6 +21,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ইউজার ইনপুট হ্যান্ডলিং
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message is None: # update.message None কিনা সেটা চেক করা হচ্ছে
+        return
+
     user_id = update.message.chat_id
     if user_id not in user_data:
         await update.message.reply_text("প্রথমে /start কমান্ড ব্যবহার করুন")
@@ -65,7 +68,7 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             if text.isdigit():
                 user_info["episodes"].append({
-                    "episode": None,
+                    "episode": text,
                     "hd_link": None,
                     "sd_link": None,
                     "title": None,
@@ -236,7 +239,7 @@ async def send_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
-    TOKEN = "7867830008:AAGqjR-2Bl_tqkxkgsRcPGVCP0aC8Lh4BMc"  # আপনার বটের টোকেন
+    TOKEN = "7867830008:AAGGIH5Yd-4l6EaAE7w-9Uh-ZyP-6kKwKzQ"  # আপনার বটের টোকেন
     app = Application.builder().token(TOKEN).build()
 
     # হ্যান্ডলার রেজিস্টার করুন
@@ -244,21 +247,22 @@ def main():
     app.add_handler(CommandHandler("send", handle_send_command)) # Use handle_send_command to create task
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_input))
     app.add_handler(CommandHandler("preview", show_preview_all)) # প্রিভিউ দেখার জন্য হ্যান্ডলার
+    app.add_handler(CommandHandler("cancel", cancel_command)) # Cancel command
 
     # বট চালু করুন
     print("বট চালু হয়েছে...")
     app.run_polling()
 
 async def handle_send_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.chat_id
+    user_id = update.message.chat_id()
     if user_id not in user_data:
         await update.message.reply_text("প্রথমে /start কমান্ড ব্যবহার করুন")
         return
     if not user_data[user_id]["episodes"]: # এপিসোড ডেটা আছে কিনা সেটা চেক করা হচ্ছে
         await update.message.reply_text("প্রথমে এপিসোড তথ্য দিন।") # এপিসোড তথ্য দিতে বলা হচ্ছে
         return
-    await show_preview_all(update, context) # send preview before sending data
-    await update.message.reply_text("আপনি যদি ডেটা সেন্ড করতে চান তাহলে '/send' অথবা ক্যান্সেল করতে '/cancel' লিখুন।") # ইউজারকে অপশন দেয়া হচ্ছে ডেটা সেন্ড করার জন্য
+    await send_data(update, context) # ডেটা সরাসরি সেন্ড করা হবে, প্রিভিউ দেখানো হবে না এবং কনফার্মেশন চাওয়া হবে না
+
 
 async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.chat_id
@@ -268,14 +272,6 @@ async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("কোনো ডেটা বাতিল করার নেই। /start দিয়ে শুরু করুন।")
 
-# ডেটা সেন্ড করার কমান্ড হ্যান্ডলার
-async def handle_send_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text.lower() == '/send':
-        await send_data(update, context) # ডেটা সেন্ড করা হচ্ছে
-    elif update.message.text.lower() == '/cancel':
-        await cancel_command(update, context) # ডেটা বাতিল করা হচ্ছে
-    else:
-        await update.message.reply_text("ইনপুট প্রসেসিং এ সমস্যা। '/send' অথবা '/cancel' লিখুন।") # ইনপুট এর জন্য বলা হচ্ছে
 
 if __name__ == "__main__":
     main()
