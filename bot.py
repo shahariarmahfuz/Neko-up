@@ -222,7 +222,7 @@ async def send_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
     del user_data[user_id]
 
 def main():
-    TOKEN = "7791721807:AAEPHELWDa0238YbYT3O53OcsrFRHYEFUf4"
+    TOKEN = "7059109518:AAHts5ZOlUCqAimWvlO6dtEGnWY723f_gQk"
     app = Application.builder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
