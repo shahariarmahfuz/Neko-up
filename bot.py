@@ -1,67 +1,94 @@
 import os
-import requests
 import asyncio
-from telegram import Update
-from telegram.ext import Application, MessageHandler, filters, ContextTypes
+import requests
+from telethon import TelegramClient, events
+from telethon.tl.types import DocumentAttributeVideo
 
-# টোকেন এবং API এন্ডপয়েন্ট
-TELEGRAM_TOKEN = "7479613855:AAFoEk8FOTOADo5hcewJPdEFOaIvgKLGyFg"
+# টেলিগ্রাম API কনফিগারেশন
+API_ID = "20716719"
+API_HASH = "c929824683800816ddf0faac845d89c9"
+BOT_TOKEN = "7867830008:AAE9ljH11pHuGVRA9XcwGYhoTYVnEP5cvHE"
+
+# ফ্লাস্ক API এন্ডপয়েন্ট
 API_ENDPOINT = "https://molecular-angel-itachivai-e6c91c4d.koyeb.app/up"
 
-async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# ক্লায়েন্ট তৈরি করুন
+client = TelegramClient('bot_session', API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+
+async def upload_video_to_api(file_path):
+    """ভিডিও ফাইল ফ্লাস্ক API-তে আপলোড করুন"""
     try:
-        # ভিডিও ফাইল ডাউনলোড করুন
-        file = await update.message.video.get_file()
-        temp_file = f"temp_{update.update_id}.mp4"
-        await file.download_to_drive(temp_file)
-        
-        # ফ্লাস্ক API-তে ভিডিও আপলোড করুন
-        with open(temp_file, 'rb') as f:
+        with open(file_path, 'rb') as f:
             files = {'video': f}
             response = requests.post(API_ENDPOINT, files=files)
-            
-        # টেম্প ফাইল ডিলিট করুন
-        os.remove(temp_file)
         
-        # যদি API রেসপন্স সফল না হয়
-        if response.status_code != 202:
-            await update.message.reply_text("⚠️ Processing failed to start")
-            return
-            
-        # প্রসেসিং স্ট্যাটাস চেক করার জন্য ডেটা নিন
-        data = response.json()
-        process_id = data['process_id']
-        check_url = f"{API_ENDPOINT.rsplit('/',1)[0]}/check_status/{process_id}"
-        
-        # ইউজারকে প্রসেসিং শুরু হয়েছে জানান
-        msg = await update.message.reply_text("🔄 Processing started...")
-        
-        # প্রসেসিং স্ট্যাটাস চেক করুন
-        while True:
-            status_response = requests.get(check_url, headers={'Accept': 'application/json'})
-            if status_response.status_code == 200:
-                result = status_response.json()
-                if result['status'] == 'success':
-                    await msg.edit_text(f"✅ Processed!\nURL: {result['url']}")
-                    break
-                elif result['status'] == 'error':
-                    await msg.edit_text(f"❌ Error: {result['message']}")
-                    break
-            await asyncio.sleep(5)
-            
+        if response.status_code == 202:
+            return response.json()  # প্রসেসিং ডেটা রিটার্ন করুন
+        else:
+            return None
     except Exception as e:
-        await update.message.reply_text(f"❌ Error: {str(e)}")
+        print(f"Error uploading video: {e}")
+        return None
 
-def main():
-    # টেলিগ্রাম বট অ্যাপ্লিকেশন তৈরি করুন
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
-    
-    # ভিডিও মেসেজ হ্যান্ডলার যোগ করুন
-    app.add_handler(MessageHandler(filters.VIDEO, handle_video))
-    
-    # বট চালান
-    print("Bot is running...")
-    app.run_polling()
+async def check_processing_status(process_id):
+    """প্রসেসিং স্ট্যাটাস চেক করুন"""
+    try:
+        check_url = f"{API_ENDPOINT.rsplit('/',1)[0]}/check_status/{process_id}"
+        response = requests.get(check_url, headers={'Accept': 'application/json'})
+        
+        if response.status_code == 200:
+            return response.json()  # স্ট্যাটাস ডেটা রিটার্ন করুন
+        else:
+            return None
+    except Exception as e:
+        print(f"Error checking status: {e}")
+        return None
 
-if __name__ == "__main__":
-    main()
+@client.on(events.NewMessage(pattern='/start'))
+async def start(event):
+    """/start কমান্ড হ্যান্ডলার"""
+    await event.reply("Hello! Send me a video file to process.")
+
+@client.on(events.NewMessage)
+async def handle_video(event):
+    """ভিডিও মেসেজ হ্যান্ডলার"""
+    if event.message.video:
+        try:
+            # ভিডিও ডাউনলোড করুন
+            temp_file = f"temp_{event.message.id}.mp4"
+            await event.download_media(file=temp_file)
+            
+            # ইউজারকে প্রসেসিং শুরু হয়েছে জানান
+            await event.reply("🔄 Processing your video...")
+            
+            # ভিডিও ফ্লাস্ক API-তে আপলোড করুন
+            upload_response = await upload_video_to_api(temp_file)
+            
+            if upload_response:
+                process_id = upload_response['process_id']
+                
+                # প্রসেসিং স্ট্যাটাস চেক করুন
+                while True:
+                    status_response = await check_processing_status(process_id)
+                    if status_response:
+                        if status_response['status'] == 'success':
+                            await event.reply(f"✅ Processed!\nURL: {status_response['url']}")
+                            break
+                        elif status_response['status'] == 'error':
+                            await event.reply(f"❌ Error: {status_response['message']}")
+                            break
+                    await asyncio.sleep(5)
+            else:
+                await event.reply("⚠️ Failed to start processing.")
+            
+            # টেম্প ফাইল ডিলিট করুন
+            os.remove(temp_file)
+            
+        except Exception as e:
+            await event.reply(f"❌ Error: {str(e)}")
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+
+# বট চালান
+print("Bot is running...")
+client.run_until_disconnected()
