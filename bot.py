@@ -239,7 +239,7 @@ async def send_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
-    TOKEN = "7867830008:AAGGIH5Yd-4l6EaAE7w-9Uh-ZyP-6kKwKzQ"  # আপনার বটের টোকেন
+    TOKEN = "7867830008:AAF1hgq5liyBgGn3ATOXQ-vMyo5KFVi4MnE"  # আপনার বটের টোকেন
     app = Application.builder().token(TOKEN).build()
 
     # হ্যান্ডলার রেজিস্টার করুন
@@ -254,7 +254,7 @@ def main():
     app.run_polling()
 
 async def handle_send_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.chat_id()
+    user_id = update.message.chat_id # এখানে থেকে () বাদ দেওয়া হয়েছে
     if user_id not in user_data:
         await update.message.reply_text("প্রথমে /start কমান্ড ব্যবহার করুন")
         return
