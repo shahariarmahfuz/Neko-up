@@ -1,6 +1,2 @@
-# requirements.txt
-telethon
-python-dotenv
 aiohttp
-requests
 python-telegram-bot==20.6
