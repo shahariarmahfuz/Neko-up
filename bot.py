@@ -5,8 +5,8 @@ from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 
 # টোকেন এবং API এন্ডপয়েন্ট
-TELEGRAM_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
-API_ENDPOINT = "http://your-flask-app-domain:8000/up"
+TELEGRAM_TOKEN = "7479613855:AAFoEk8FOTOADo5hcewJPdEFOaIvgKLGyFg"
+API_ENDPOINT = "https://molecular-angel-itachivai-e6c91c4d.koyeb.app/up"
 
 async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
