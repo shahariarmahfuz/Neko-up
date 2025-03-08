@@ -3,6 +3,7 @@ import random
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import asyncio
+import json  # Ensure json library is imported
 
 # ইউজারের তথ্য সংরক্ষণের জন্য ডিকশনারি
 user_data = {}
@@ -21,9 +22,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ইউজার ইনপুট হ্যান্ডলিং
 async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message is None: # update.message None কিনা সেটা চেক করা হচ্ছে
-        return
-
     user_id = update.message.chat_id
     if user_id not in user_data:
         await update.message.reply_text("প্রথমে /start কমান্ড ব্যবহার করুন")
@@ -45,36 +43,35 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_info["season_number"] = text
         user_info["episodes"].append({
             "episode": None,
-            "hd_link": None, # সরাসরি এইচডি লিংক নেয়া হবে
-            "sd_link": None, # সরাসরি এসডি লিংক নেয়া হবে
+            "api_link": None, # Changed from facebook_link to api_link
             "title": None,
-            "description": None
+            "description": None,
+            "hd_link": None,
+            "sd_link": None
         })
-        await update.message.reply_text("অনুগ্রহ করে প্রথম এপিসোডের এইচডি লিংক দিন:") # এইচডি লিংক চাওয়া হচ্ছে
+        await update.message.reply_text("অনুগ্রহ করে প্রথম এপিসোডের নম্বর দিন:")
     elif not user_info["episodes"]:
         pass
     else:
         current_episode_data = user_info["episodes"][-1]
 
-        if current_episode_data["hd_link"] is None: # প্রথমে এইচডি লিংক নেয়া হচ্ছে
-            current_episode_data["hd_link"] = text
-            await update.message.reply_text("অনুগ্রহ করে এসডি লিংক দিন:") # এরপর এসডি লিংক চাওয়া হচ্ছে
-        elif current_episode_data["sd_link"] is None: # এসডি লিংক নেয়া হচ্ছে
-            current_episode_data["sd_link"] = text
-            await update.message.reply_text("অনুগ্রহ করে এপিসোড নম্বর দিন:") # এপিসোড নম্বর চাওয়া হচ্ছে
-        elif current_episode_data["episode"] is None: # এপিসোড নম্বর নেয়া হচ্ছে সবার শেষে
+        if current_episode_data["episode"] is None:
             current_episode_data["episode"] = text
-            await update.message.reply_text("ভিডিও তথ্য যুক্ত হয়েছে। আপনি কি অন্য এপিসোড যোগ করতে চান? হ্যাঁ অথবা না লিখুন") #Just collect info, AI content will be generated on /send
+            await update.message.reply_text("অনুগ্রহ করে API লিংক দিন:") # Changed prompt
+        elif current_episode_data["api_link"] is None: # Changed from facebook_link to api_link
+            current_episode_data["api_link"] = text # Changed from facebook_link to api_link
+            await update.message.reply_text("ভিডিও তথ্য যুক্ত হয়েছে। আপনি কি অন্য এপিসোড যোগ করতে চান? হ্যাঁ অথবা না লিখুন অথবা /send লিখুন") #Just collect info, AI content will be generated on /send
         else:
             if text.isdigit():
                 user_info["episodes"].append({
                     "episode": text,
-                    "hd_link": None,
-                    "sd_link": None,
+                    "api_link": None, # Changed from facebook_link to api_link
                     "title": None,
-                    "description": None
+                    "description": None,
+                    "hd_link": None,
+                    "sd_link": None
                 })
-                await update.message.reply_text("অনুগ্রহ করে এইচডি লিংক দিন:") # আবার এইচডি লিংক চাওয়া হচ্ছে নতুন এপিসোডের জন্য
+                await update.message.reply_text("অনুগ্রহ করে API লিংক দিন:") # Changed prompt
             elif text.lower() == '/send':
                 asyncio.create_task(send_data(update, context)) # Create a new task for each user's send_data request
             else:
@@ -125,10 +122,11 @@ async def show_preview_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"🎬 টাইটেল: জেনারেট হবে সেন্ড করার পর\n" # টাইটেল এখন জেনারেট হবে না
             f"📝 ডেসক্রিপশন: জেনারেট হবে সেন্ড করার পর\n" # ডেসক্রিপশন এখন জেনারেট হবে না
             f"🖼️ থামনাইল লিংক: {user_info['thumbnail_link']}\n"
-            f"🔗 HD লিংক: {episode_data['hd_link']}\n" # ইউজার প্রদত্ত এইচডি লিংক
-            f"🔗 SD লিংক: {episode_data['sd_link']}\n" # ইউজার প্রদত্ত এসডি লিংক
+            f"🔗 API লিংক: {episode_data['api_link']}\n" # Changed from ফেসবুক ভিডিও লিংক to API link
             f"🔢 এনিমে নম্বর: {user_info['anime_number']}\n"
             f"🔢 সিজন নম্বর: {user_info['season_number']}\n"
+            f"🔗 HD লিংক: প্রসেসিং করার পর পাওয়া যাবে\n" # HD link will be processed later
+            f"🔗 SD লিংক: প্রসেসিং করার পর পাওয়া যাবে\n\n" # SD link will be processed later
             "------------------------\n"
         )
     preview_message_all += "যদি সব তথ্য সঠিক থাকে, /send লিখে ভিডিওগুলো যুক্ত করুন।"
@@ -151,14 +149,33 @@ async def process_episode_data(update: Update, context: ContextTypes.DEFAULT_TYP
         episode_data["title"] = ai_content["title"]
         episode_data["description"] = ai_content["description"]
 
+        # Process API link to get HD and SD links
+        api_link = episode_data["api_link"]
+        episode_data["hd_link"] = "লিংক পাওয়া যায়নি" # Default value if HD link is not found
+        episode_data["sd_link"] = "লিংক পাওয়া যায়নি" # Default value if SD link is not found
+
+        try:
+            async with aiohttp.ClientSession() as session_api_link:
+                async with session_api_link.get(api_link) as response_api_link:
+                    if response_api_link.status == 200:
+                        api_video_data = await response_api_link.json() # Parse JSON response
+                        episode_data["hd_link"] = api_video_data.get("hd", episode_data["hd_link"]) # Extract HD link
+                        episode_data["sd_link"] = api_video_data.get("sd", episode_data["sd_link"]) # Extract SD link
+                    else:
+                        error_messages.append(f"API request failed for episode {episode_data['episode']} with status code: {response_api_link.status}")
+                        return None, error_messages # Skip API call if API link request failed
+        except aiohttp.ClientError as e:
+            error_messages.append(f"API request error for episode {episode_data['episode']}: {str(e)}")
+            return None, error_messages # Skip API call if API link request error
+
 
         api_url = "https://nekofilx.onrender.com/ad"
         params = {
             "a": user_info["anime_number"],
             "s": user_info["season_number"],
             "t": episode_data["title"],
-            "720p": episode_data["hd_link"], # ইউজার প্রদত্ত এইচডি লিংক ব্যবহার করা হচ্ছে
-            "480p": episode_data["sd_link"], # ইউজার প্রদত্ত এসডি লিংক ব্যবহার করা হচ্ছে
+            "720p": episode_data["hd_link"],
+            "480p": episode_data["sd_link"],
             "th": user_info["thumbnail_link"],
             "d": episode_data["description"],
             "eps": episode_data["episode"]
@@ -236,7 +253,21 @@ async def send_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("কোন এপিসোড প্রসেসিং করা হয়নি।")
 
     del user_data[user_id] # ইউজার ডেটা ডিলিট করে দিন
+    await show_preview_all(update, context) # Show preview after processing all episodes
 
+
+async def handle_send_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.message.chat_id
+    if user_id not in user_data:
+        await update.message.reply_text("প্রথমে /start কমান্ড ব্যবহার করুন")
+        return
+
+    if not user_data[user_id]["episodes"]: # Check if episodes data is available before showing preview
+         await update.message.reply_text("কোন এপিসোড তথ্য নেই।")
+         return
+
+    await show_preview_all(update, context) # Show preview before processing
+    # এরপর ইউজার যদি সেন্ড করতে চায় তাহলে আলাদা বাটন অথবা কমান্ড এর মাধ্যমে সেন্ড করবে। currently /send করবে preview দেখে
 
 def main():
     TOKEN = "7867830008:AAF1hgq5liyBgGn3ATOXQ-vMyo5KFVi4MnE"  # আপনার বটের টোকেন
@@ -246,31 +277,10 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("send", handle_send_command)) # Use handle_send_command to create task
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_input))
-    app.add_handler(CommandHandler("preview", show_preview_all)) # প্রিভিউ দেখার জন্য হ্যান্ডলার
-    app.add_handler(CommandHandler("cancel", cancel_command)) # Cancel command
 
     # বট চালু করুন
     print("বট চালু হয়েছে...")
     app.run_polling()
-
-async def handle_send_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.chat_id # এখানে থেকে () বাদ দেওয়া হয়েছে
-    if user_id not in user_data:
-        await update.message.reply_text("প্রথমে /start কমান্ড ব্যবহার করুন")
-        return
-    if not user_data[user_id]["episodes"]: # এপিসোড ডেটা আছে কিনা সেটা চেক করা হচ্ছে
-        await update.message.reply_text("প্রথমে এপিসোড তথ্য দিন।") # এপিসোড তথ্য দিতে বলা হচ্ছে
-        return
-    await send_data(update, context) # ডেটা সরাসরি সেন্ড করা হবে, প্রিভিউ দেখানো হবে না এবং কনফার্মেশন চাওয়া হবে না
-
-
-async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.chat_id
-    if user_id in user_data:
-        del user_data[user_id] # ইউজারের ডেটা বাতিল করা হলো
-        await update.message.reply_text("ইনপুট বাতিল করা হয়েছে। আপনি আবার /start দিয়ে শুরু করতে পারেন।")
-    else:
-        await update.message.reply_text("কোনো ডেটা বাতিল করার নেই। /start দিয়ে শুরু করুন।")
 
 
 if __name__ == "__main__":
