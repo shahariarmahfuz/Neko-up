@@ -109,28 +109,28 @@ async def generate_ai_content_for_send(anime, episode, random_id): # Modified AI
 
 
 
-# সকল এপিসোডের প্রিভিউ দেখানো
-async def show_preview_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.chat_id
-    user_info = user_data[user_id]
+# সকল এপিসোডের প্রিভিউ দেখানো (ফাংশনটি এখন আর ব্যবহার করা হবে না)
+# async def show_preview_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     user_id = update.message.chat_id
+#     user_info = user_data[user_id]
 
-    preview_message_all = "🎬 সকল এপিসোডের প্রিভিউ:\n\n"
-    for episode_data in user_info["episodes"]:
-        preview_message_all += (
-            f"📺 এনিমে: {user_info['anime']}\n"
-            f"🔢 এপিসোড: {episode_data['episode']}\n"
-            f"🎬 টাইটেল: জেনারেট হবে সেন্ড করার পর\n" # টাইটেল এখন জেনারেট হবে না
-            f"📝 ডেসক্রিপশন: জেনারেট হবে সেন্ড করার পর\n" # ডেসক্রিপশন এখন জেনারেট হবে না
-            f"🖼️ থামনাইল লিংক: {user_info['thumbnail_link']}\n"
-            f"🔗 API লিংক: {episode_data['api_link']}\n" # Changed from ফেসবুক ভিডিও লিংক to API link
-            f"🔢 এনিমে নম্বর: {user_info['anime_number']}\n"
-            f"🔢 সিজন নম্বর: {user_info['season_number']}\n"
-            f"🔗 HD লিংক: প্রসেসিং করার পর পাওয়া যাবে\n" # HD link will be processed later
-            f"🔗 SD লিংক: প্রসেসিং করার পর পাওয়া যাবে\n\n" # SD link will be processed later
-            "------------------------\n"
-        )
-    preview_message_all += "যদি সব তথ্য সঠিক থাকে, /send লিখে ভিডিওগুলো যুক্ত করুন।"
-    await update.message.reply_text(preview_message_all)
+#     preview_message_all = "🎬 সকল এপিসোডের প্রিভিউ:\n\n"
+#     for episode_data in user_info["episodes"]:
+#         preview_message_all += (
+#             f"📺 এনিমে: {user_info['anime']}\n"
+#             f"🔢 এপিসোড: {episode_data['episode']}\n"
+#             f"🎬 টাইটেল: জেনারেট হবে সেন্ড করার পর\n" # টাইটেল এখন জেনারেট হবে না
+#             f"📝 ডেসক্রিপশন: জেনারেট হবে সেন্ড করার পর\n" # ডেসক্রিপশন এখন জেনারেট হবে না
+#             f"🖼️ থামনাইল লিংক: {user_info['thumbnail_link']}\n"
+#             f"🔗 API লিংক: {episode_data['api_link']}\n" # Changed from ফেসবুক ভিডিও লিংক to API link
+#             f"🔢 এনিমে নম্বর: {user_info['anime_number']}\n"
+#             f"🔢 সিজন নম্বর: {user_info['season_number']}\n"
+#             f"🔗 HD লিংক: প্রসেসিং করার পর পাওয়া যাবে\n" # HD link will be processed later
+#             f"🔗 SD লিংক: প্রসেসিং করার পর পাওয়া যাবে\n\n" # SD link will be processed later
+#             "------------------------\n"
+#         )
+#     preview_message_all += "যদি সব তথ্য সঠিক থাকে, /send লিখে ভিডিওগুলো যুক্ত করুন।"
+#     await update.message.reply_text(preview_message_all)
 
 
 async def process_episode_data(update: Update, context: ContextTypes.DEFAULT_TYPE, user_info, episode_data):
@@ -253,7 +253,7 @@ async def send_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("কোন এপিসোড প্রসেসিং করা হয়নি।")
 
     del user_data[user_id] # ইউজার ডেটা ডিলিট করে দিন
-    await show_preview_all(update, context) # Show preview after processing all episodes
+    # await show_preview_all(update, context) # Show preview after processing all episodes - REMOVED PREVIEW
 
 
 async def handle_send_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -262,12 +262,12 @@ async def handle_send_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.message.reply_text("প্রথমে /start কমান্ড ব্যবহার করুন")
         return
 
-    if not user_data[user_id]["episodes"]: # Check if episodes data is available before showing preview
+    if not user_data[user_id]["episodes"]: # Check if episodes data is available
          await update.message.reply_text("কোন এপিসোড তথ্য নেই।")
          return
 
-    await show_preview_all(update, context) # Show preview before processing
-    # এরপর ইউজার যদি সেন্ড করতে চায় তাহলে আলাদা বাটন অথবা কমান্ড এর মাধ্যমে সেন্ড করবে। currently /send করবে preview দেখে
+    await asyncio.create_task(send_data(update, context)) # Directly send data, no preview
+
 
 def main():
     TOKEN = "7867830008:AAF1hgq5liyBgGn3ATOXQ-vMyo5KFVi4MnE"  # আপনার বটের টোকেন
